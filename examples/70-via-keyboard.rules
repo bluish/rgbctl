@@ -1,0 +1,2 @@
+# Keychron Link (2.4G dongle) and Keychron keyboards over USB: raw HID for VIA/Launcher
+KERNEL=="hidraw*", ATTRS{idVendor}=="3434", TAG+="uaccess"

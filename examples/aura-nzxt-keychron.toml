@@ -1,0 +1,51 @@
+# A desktop with an ASUS Aura board, two ENE DRAM sticks, an NZXT
+# Smart Device V2 with two RGB channels, and a Keychron K3 Max (ANSI RGB)
+# over VIA, by cable or through its 2.4G dongle.
+
+# "color theme" uses this file's `accent` (the desktop theme's colours).
+theme_colors = "~/.local/state/omarchy/current/theme/colors.toml"
+
+[openrgb]
+host = "127.0.0.1"
+port = 6742
+
+# OpenRGB groups: `device` is a substring of the device name, `zone` an index
+# (leave it out for the whole device). Map zones with `rgbctl identify <device>`.
+[[group]]
+name = "case"
+label = "Case strip"
+backend = "openrgb"
+device = "NZXT Smart Device"
+zone = 0
+
+[[group]]
+name = "underglow"
+label = "Underglow"
+backend = "openrgb"
+device = "NZXT Smart Device"
+zone = 1
+
+[[group]]
+name = "board"
+label = "Motherboard"
+backend = "openrgb"
+device = "ASUS ROG"
+
+[[group]]
+name = "ram"
+label = "Memory"
+backend = "openrgb"
+device = "ENE DRAM"
+
+# VIA keyboards: HID ids as in /sys/class/hidraw/*/device/uevent, preferred
+# first. The first one counts as "wired"; later ones (a dongle) as "wireless".
+# The dongle only forwards VIA with
+# patched firmware that routes raw HID through it.
+[[group]]
+name = "keyboard"
+label = "Keychron keyboard"
+backend = "via"
+hid_ids = ["0003:00003434:00000A30", "0003:00003434:0000D030"]
+channel = 3              # qmk_rgb_matrix
+effects = { static = 1, breathing = 2, rainbow = 5 }   # this board's VIA effect numbers
+speed = 96
