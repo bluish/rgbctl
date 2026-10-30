@@ -177,7 +177,7 @@ func applyVIA(g Group, s State) (bool, error) {
 		data []byte
 	}{
 		{1, []byte{bright}},
-		{2, []byte{g.Effects[s.Effect]}},
+		{2, []byte{viaEffect(g, s.Effect)}},
 		{3, []byte{*g.Speed}},
 		{4, []byte{byte(math.Round(h * 255)), byte(math.Round(sat * 255))}},
 	}
@@ -205,4 +205,13 @@ func applyVIA(g Group, s State) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// viaEffect is the board's number for the effect, or its static one when the
+// board has no such effect.
+func viaEffect(g Group, effect string) byte {
+	if n, ok := g.Effects[effect]; ok {
+		return n
+	}
+	return g.Effects["static"]
 }

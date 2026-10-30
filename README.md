@@ -13,10 +13,16 @@ rgbctl toggle
 rgbctl sync                # push the state to the VIA keyboards
 rgbctl link <group>        # wired | wireless | absent
 rgbctl identify <device>   # light each zone of a device alone, to map strips
+rgbctl modes               # each OpenRGB device's hardware modes
 ```
 
-- **Effects**: `static` (direct mode, per zone), `breathing` and `rainbow`
-  (each controller's hardware mode; the names to look for are configurable).
+- **Effects**: `static` (direct mode, per zone), and hardware effects that
+  most controllers share under different names: `breathing`, `flashing`,
+  `spectrum` (the whole device cycles colours), `rainbow` (a moving wave),
+  `chase`, `twinkle` and, on keyboards, `reactive`. Each maps to a list of
+  OpenRGB mode names (`[openrgb.modes]` overrides them; `rgbctl modes` lists
+  what each device has) and to VIA effect numbers per keyboard. A light
+  without the effect shows static.
   Most controllers have no hardware brightness, so brightness scales the
   colour (not the rainbow).
 - **`color theme`** reads `accent` from a theme colours file (TOML), with
@@ -46,7 +52,7 @@ name = "keyboard"
 backend = "via"
 hid_ids = ["0003:0000VVVV:0000PPPP"]   # from /sys/class/hidraw/*/device/uevent; first = wired
 channel = 3                            # qmk_rgb_matrix
-effects = { static = 1, breathing = 2, rainbow = 5 }   # the board's VIA effect numbers
+effects = { static = 1, breathing = 2, rainbow = 5 }   # the board's VIA effect numbers; missing ones show static
 ```
 
 A VIA keyboard needs read/write access to its hidraw node, through a udev

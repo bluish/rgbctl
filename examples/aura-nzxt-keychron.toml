@@ -47,5 +47,7 @@ label = "Keychron keyboard"
 backend = "via"
 hid_ids = ["0003:00003434:00000A30", "0003:00003434:0000D030"]
 channel = 3              # qmk_rgb_matrix
-effects = { static = 1, breathing = 2, rainbow = 5 }   # this board's VIA effect numbers
+# This board's VIA effect numbers (rgbctl modes lists them in order, from 1).
+# Effects a board lacks show static.
+effects = { static = 1, breathing = 2, spectrum = 4, rainbow = 5, twinkle = 15, reactive = 18 }
 speed = 96

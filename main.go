@@ -26,15 +26,34 @@ and every change is applied right away.
 
 Usage: rgbctl apply [--wait]           apply the saved state (--wait: retry until the server is up)
        rgbctl set <key> <value> ...    on true|false, brightness 0-100,
-                                       effect static|breathing|rainbow,
+                                       effect <name> (listed by rgbctl state),
                                        color theme|#rrggbb, group.<name> true|false
        rgbctl toggle                   flip on/off
        rgbctl sync [group]             push the state to VIA keyboards
        rgbctl link <group>             print "wired", "wireless" or "absent" for a VIA keyboard
        rgbctl state                    print state as JSON
-       rgbctl identify <device>        light each zone of an OpenRGB device alone, to map strips`
+       rgbctl identify <device>        light each zone of an OpenRGB device alone, to map strips
+       rgbctl modes                    list each OpenRGB device's hardware modes`
 
-var effects = []string{"static", "breathing", "rainbow"}
+// effectOrder is how effects are listed; an effect is available when some
+// backend has a mapping for it, and a light without one shows static.
+var effectOrder = []string{"static", "breathing", "flashing", "spectrum", "rainbow", "chase", "twinkle", "reactive"}
+
+// effects lists the effects some light in the config can show.
+func effects() []string {
+	out := []string{}
+	for _, e := range effectOrder {
+		ok := e == "static" || len(cfg.OpenRGB.Modes[e]) > 0 && len(groups("openrgb")) > 0
+		for _, g := range groups("via") {
+			_, has := g.Effects[e]
+			ok = ok || has
+		}
+		if ok {
+			out = append(out, e)
+		}
+	}
+	return out
+}
 
 type Group struct {
 	Name    string           `toml:"name"`
@@ -66,6 +85,7 @@ type State struct {
 	Groups     map[string]bool     `json:"groups"`
 	Resolved   string              `json:"resolved"`
 	GroupInfo  []map[string]string `json:"group_info"`
+	Effects    []string            `json:"effects"`
 }
 
 var (
@@ -133,7 +153,16 @@ func loadConfig() {
 		cfg.OpenRGB.Port = 6742
 	}
 	// OpenRGB hardware mode per effect, first match wins.
-	modes := map[string][]string{"breathing": {"Breathing"}, "rainbow": {"Rainbow Flow", "Rainbow", "Spectrum Cycle"}}
+	// Names differ by vendor; these cover the common motherboard, RAM and
+	// fan-controller drivers.
+	modes := map[string][]string{
+		"breathing": {"Breathing"},
+		"flashing":  {"Flashing", "Pulsing"},
+		"spectrum":  {"Spectrum Cycle", "Super Rainbow"},
+		"rainbow":   {"Rainbow Flow", "Rainbow Wave", "Rainbow", "Spectrum Cycle Wave"},
+		"chase":     {"Chase", "Marquee"},
+		"twinkle":   {"Random Flicker", "Starry Night", "Candle"},
+	}
 	for k, v := range cfg.OpenRGB.Modes {
 		modes[k] = v
 	}
@@ -174,6 +203,10 @@ func loadState() State {
 
 func saveState(s *State) {
 	s.Resolved = resolvedColor(*s)
+	s.Effects = effects()
+	if !contains(s.Effects, s.Effect) {
+		s.Effect = "static"
+	}
 	s.GroupInfo = nil
 	for _, g := range cfg.Groups {
 		s.GroupInfo = append(s.GroupInfo, map[string]string{"name": g.Name, "label": g.Label, "backend": g.Backend})
@@ -426,7 +459,7 @@ func setValues(s *State, args []string) {
 				fail("invalid setting: %s %s", key, value)
 			}
 			s.Brightness = max(0, min(100, n))
-		case key == "effect" && contains(effects, value):
+		case key == "effect" && contains(effects(), value):
 			s.Effect = value
 		case key == "color" && (value == "theme" || (len(value) == 7 && value[0] == '#')):
 			s.Color = strings.ToLower(value)
@@ -536,8 +569,27 @@ func main() {
 		fmt.Println(string(raw))
 	case cmd == "identify" && len(args) == 2:
 		identify(args[1])
+	case cmd == "modes":
+		listModes()
 	default:
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
+	}
+}
+
+// listModes prints the hardware modes each OpenRGB device offers, to map
+// effects in the config.
+func listModes() {
+	c, devs, err := connect(false)
+	if err != nil {
+		fail("openrgb: %v", err)
+	}
+	defer c.close()
+	for _, d := range devs {
+		var names []string
+		for _, m := range d.Modes {
+			names = append(names, m.Name)
+		}
+		fmt.Printf("%s: %s\n", d.Name, strings.Join(names, ", "))
 	}
 }
